@@ -15,7 +15,7 @@ Now create a python virtual environment and install the required packages follow
 ```console
 user@computer:~$ conda create -n <enviroment_name> anaconda python=3
 user@computer:~$ conda activate <enviroment_name>
-(<enviroment_name>) user@computer:~$ conda install -c loopbio -c conda-forge -c pkgw-forge ffmpeg gtk2 opencv numpy scipy matplotlib cython pip
+(<enviroment_name>) user@computer:~$ conda install -c loopbio -c conda-forge -c pkgw-forge ffmpeg gtk2 opencv numpy 
 ```
 
 ## Using the script
@@ -31,7 +31,7 @@ user@computer:~$ conda activate <enviroment_name>
 This script aims to track and detect the gaze direction of mice in neuroscience experiments, a window contaning the results will be displayed. Usage:
 
 ```console
-(<enviroment_name>) user@computer:~/proj-pca$ python pcaAnalyser.py [-h] [--color-mask] [--both-axis]       [--show-mask] [--save-video] video bg_image
+(<enviroment_name>) user@computer:~/proj-pca$ python pcaAnalyser.py [-h] [--color-mask] [--both-axis] [--show-mask] [--save-video] video bg_image
 ```
 
 Optional arguments:
