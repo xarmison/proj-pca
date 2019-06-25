@@ -2,7 +2,6 @@ from math import atan2, cos, sin, sqrt, pi
 import numpy as np
 import cv2 as cv
 import argparse
-import sys
 
 def parser_args():
     parser = argparse.ArgumentParser(
@@ -105,7 +104,7 @@ if __name__ == '__main__':
     bg_img = cv.imread(args.bg_image)
 
     if(bg_img.size is None):
-        print('Error opening backgroung image')
+        print('Error opening background image')
         exit()
 
     cap = cv.VideoCapture(args.video)
