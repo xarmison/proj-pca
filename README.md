@@ -26,7 +26,7 @@ To use the provided scripts make sure to activate your python enviroment, that c
 user@computer:~$ conda activate <enviroment_name>
 ```
 
-### [PCA Analyser](./pcaAnaluser.py)
+### [PCA Analyser](./pcaAnalyser.py)
 
 This script aims to track and detect the gaze direction of mice in neuroscience experiments, a window contaning the results will be displayed. Usage:
 
@@ -46,3 +46,25 @@ Positional arguments:
 
 * *video*: Path to the file file to be processed.
 * *bg_image*: Path to the background image of the scene.
+
+### [Tracker](./tracker.py)
+
+This script aims to track mice throughout a neuroscience experiment detecting when the mice is present in a previously selected region. Usage:
+
+```console
+(<enviroment_name>) user@computer:~/proj-pca$ python tracker.py [-h] [--draw-axis] [--save-video] [--color-mask] video bg_image
+```
+
+Optional arguments:
+
+* *-h*, *--help*: Show a help message and exit
+* *--draw-axis*: Draw both PCA axis.
+* *--color-mask*: Draw a colored mask over the detection.
+* *--save-video*: Create a video file with the analysis result.
+
+Positional arguments:
+
+* *video*: Path to the file file to be processed.
+* *bg_image*: Path to the background image of the scene.
+
+![tracker_GIF](./readme_imgs/tracker.gif)
