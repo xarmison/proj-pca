@@ -33,6 +33,11 @@ def parser_args():
         help='Draw a colored mask over the detection.'
     )
 
+    parser.add_argument(
+        '--log-position', action='store_true',
+        help='Logs the position of the center of mass to file.'
+    )
+
     return parser.parse_args()
 
 def drawAxis(img, p_, q_, colour, scale):
@@ -73,7 +78,7 @@ def getOrientation(pts, img, draw):
     cntr = (int(mean[0, 0]), int(mean[0, 1]))
 
     # Draw the principal components
-    cv.circle(img, cntr, 3, (42, 89, 247), 2)
+    cv.circle(img, cntr, 3, (42, 89, 247), -1)
     p1 = (
         cntr[0] + 0.02 * eigenvectors[0, 0] * eigenvalues[0, 0], 
         cntr[1] + 0.02 * eigenvectors[0, 1] * eigenvalues[0, 0]
@@ -209,6 +214,13 @@ if __name__ == '__main__':
                         (x + w, y + h),
                         (80, 80, 80), 2
                     )
+
+        # Save position to file
+        if(args.log_position):
+            logFileName = args.video.split('/')[-1].split('.')[0] + '_log.txt'
+
+            with open(logFileName, 'a') as logFile:
+                logFile.write(f'{cntr[0]} {cntr[1]}\n')
 
         if(args.color_mask):
             # Change the color of the mask
