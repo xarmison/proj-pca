@@ -1,4 +1,4 @@
-# Mice Tracking and Head Direction Using Principal Component Analysis (PCA) 
+# Mice Tracking and Detection of Head Direction Using Principal Component Analysis (PCA) 
 
 ![projPca](./readme_imgs/pca.png)
 
@@ -42,7 +42,7 @@ Optional arguments:
 * *--show-mask*: Displays a window with the segmented mask.
 * *--save-video*: Create a video file with the analysis result.
 
-Positional arguments:
+Required arguments:
 
 * *video*: Path to the video file to be processed.
 * *bg_image*: Path to the background image without the animal in the scene.
@@ -64,7 +64,7 @@ Optional arguments:
 * *--color-mask*: Draw a colored mask over the detection.
 * *--save-video*: Create a video file with the analysis results.
 
-Positional arguments:
+Required arguments:
 
 * *video*: Path to the video file to be processed.
 * *bg_image*: Path to the background image without the animal in the scene.
@@ -73,7 +73,8 @@ Positional arguments:
 
 ### [Detections Analyser](./detectionsAnalyser.py)
 
-This script aims to analyze detections previously made and edit them if necessary, a window contaning the dectctions will be displayed. Pause and press *d* to edit the detections of the current frame. Usage:
+
+This script is intended to manually correct errors in detections that have already been made and can be edited, a window containing the instructions will be displayed. Pause and press *d* to edit the detections of the current frame. Usage:
 
 ```console
 (<enviroment_name>) user@computer:~/proj-pca$ python detectionsAnalyser.py video log_file
