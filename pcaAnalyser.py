@@ -80,16 +80,16 @@ def getOrientation(pts, img, drawBoth):
     # Draw the principal components
     cv.circle(img, cntr, 3, (255, 0, 255), 2)
     p1 = (
-        cntr[0] + 0.02 * eigenvectors[0, 0] * eigenvalues[0, 0], 
+        cntr[0] + 0.02 * eigenvectors[0, 0] * eigenvalues[0, 0],
         cntr[1] + 0.02 * eigenvectors[0, 1] * eigenvalues[0, 0]
     )
     p2 = (
-        cntr[0] - 0.02 * eigenvectors[1,0] * eigenvalues[1,0], 
+        cntr[0] - 0.02 * eigenvectors[1,0] * eigenvalues[1,0],
         cntr[1] - 0.02 * eigenvectors[1,1] * eigenvalues[1,0]
     )
 
     drawAxis(img, cntr, p1, (0, 255, 0), 2)
-    
+
     if(drawBoth):
         drawAxis(img, cntr, p2, (255, 255, 0), 5)
 
@@ -142,9 +142,9 @@ if __name__ == '__main__':
             exit()
 
         sub_frame = cv.absdiff(frame, bg_img)
-           
+
         filtered_frame = cv.inRange(sub_frame, lower_white, upper_white)
-        
+
         # Kernel for morphological operation opening
         kernel3 = cv.getStructuringElement(
             cv.MORPH_ELLIPSE,
@@ -164,7 +164,14 @@ if __name__ == '__main__':
         mask_roi = cv.bitwise_and(sub_frame, sub_frame, mask=mask)
 
         # Find all the contours in the mask
-        contours, _ = cv.findContours(mask, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
+        returns = cv.findContours(mask, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
+        
+        # Check what findContours returned
+        contours = []
+        if(len(returns) == 3):
+            contours = returns[1]
+        else:
+            contours = returns[0]
 
         for i, c in enumerate(contours):
             # Calculate the area of each contour
@@ -210,7 +217,7 @@ if __name__ == '__main__':
             while True:
 
                 cv.imshow(result_win, frame)
-                
+
                 if(args.show_mask):
                     cv.imshow(mask_win, mask)
 
@@ -220,7 +227,7 @@ if __name__ == '__main__':
                 elif(key2 == 27 or key == 113):
                     cv.destroyAllWindows()
                     cap.release()
-                    
+
                     if(args.save_video):
                         outWriter.release()
 
