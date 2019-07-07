@@ -81,6 +81,7 @@ Optional arguments:
 * *--draw-axis*: Draw both PCA axis.
 * *--color-mask*: Draw a colored mask over the detection.
 * *--save-video*: Create a video file with the analysis results.
+* *--log-position*: Creates a text file with the (x, y) position of the tracked mice.
 
 Required arguments:
 
