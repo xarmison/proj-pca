@@ -22,7 +22,7 @@ Now, create a python virtual environment and install the required packages follo
 
 ```console
 user@computer:~$ conda create -n <enviroment_name> anaconda python=3
-user@computer:~$ conda activate <enviroment_name> or source activate <enviroment_name>
+user@computer:~$ conda activate <enviroment_name> || source activate <enviroment_name>
 (<enviroment_name>) user@computer:~$ conda install -c loopbio -c conda-forge -c pkgw-forge ffmpeg gtk2 numpy==1.16.3 opencv==3.4.3 matplotlib scipy
 ```
 
