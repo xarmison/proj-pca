@@ -23,7 +23,7 @@ Now, create a python virtual environment and install the required packages follo
 ```console
 user@computer:~$ conda create -n <enviroment_name> anaconda python=3
 user@computer:~$ conda activate <enviroment_name> || source activate <enviroment_name>
-(<enviroment_name>) user@computer:~$ conda install -c loopbio -c conda-forge -c pkgw-forge ffmpeg gtk2 numpy==1.16.3 opencv==3.4.3 matplotlib scipy
+(<enviroment_name>) user@computer:~$ conda install -c loopbio -c conda-forge -c pkgw-forge ffmpeg gtk2 numpy==1.16.3 opencv==3.4.3 matplotlib scipy pyserial
 ```
 
 ### Background Image
@@ -34,7 +34,7 @@ For the tools here presented an image of the experiment scene without the animal
 user@computer:~$ ffmpeg -i video -ss 00:00:01 -vframes 1 bg.png
 ```
 
-## Using the scripts
+## The scripts
 
 To use the provided scripts, make sure to activate your python environment, that can be accomplished by:
 
@@ -73,6 +73,31 @@ This script aims to track mice throughout a neuroscience experiment detecting wh
 
 ```console
 (<enviroment_name>) user@computer:~/proj-pca$ python tracker.py [-h] [--draw-axis] [--save-video] [--color-mask] video bg_image
+```
+
+Optional arguments:
+
+* *-h*, *--help*: Show a help message and exit.
+* *--draw-axis*: Draw both PCA axis.
+* *--color-mask*: Draw a colored mask over the detection.
+* *--save-video*: Create a video file with the analysis results.
+* *--log-position*: Creates a text file with the (x, y) position of the tracked mice.
+
+Required arguments:
+
+* *video*: Path to the video file to be processed.
+* *bg_image*: Path to the background image without the animal in the scene.
+
+### [Tracker with Arduino integration](./trackerArduino.py)
+
+![trackerArduino](./readme_imgs/trackerArduino.gif)
+
+This script is an integration of the tracking system with Arduino-based development boards, enabling experiments with real-time decisions like the control of a laser simulated by the blue led in the gif above.
+
+To utilize the script first, upload the [Arduino file](./trackerArduinoFile.ino) to your microcontroller and make sure that the serial communication is working. Then, in your terminal, run the following command:
+
+```console
+(<enviroment_name>) user@computer:~/proj-pca$ python trackerArduino.py [-h] [--draw-axis] [--save-video] [--color-mask] [--log-position] video bg_image
 ```
 
 Optional arguments:
