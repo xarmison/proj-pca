@@ -20,26 +20,66 @@ First, install [Anaconda](https://www.anaconda.com/distribution/) or [Miniconda]
 
 Now, create a python virtual environment and install the required packages following the commands. Substitute **<environment_name>** with a name for your environment
 
+#### On Linux Distributions 
+
+Open your terminal and execute the following commands:
+
 ```console
 user@computer:~$ conda create -n <enviroment_name> anaconda python=3
 user@computer:~$ conda activate <enviroment_name> || source activate <enviroment_name>
 (<enviroment_name>) user@computer:~$ conda install -c loopbio -c conda-forge -c pkgw-forge ffmpeg gtk2 numpy==1.16.3 opencv==3.4.3 matplotlib scipy pyserial
 ```
 
+#### On Windows
+
+Open your anaconda command prompt and execute the following commands:  
+
+```console
+C:\Users\your-user> conda create -n <enviroment_name> anaconda python=3
+C:\Users\your-user> conda activate <enviroment_name> || source activate <enviroment_name>
+(<enviroment_name>) C:\Users\your-user> conda install -c loopbio -c conda-forge -c pkgw-forge ffmpeg numpy==1.16.3 opencv==3.4.3 matplotlib scipy pyserial
+```
+
 ### Background Image
 
 For the tools here presented an image of the experiment scene without the animal present is necessary, in most cases, the first frame is this image. To extract the first frame using the [ffmpeg](https://ffmpeg.org/) tool use the following comand, substituting **video** with the path to the video file:
+
+
+#### On Linux Distributions 
+
+On your terminal, execute the following command:
 
 ```console
 user@computer:~$ ffmpeg -i video -ss 00:00:01 -vframes 1 bg.png
 ```
 
+
+#### On Windows
+
+On your anaconda command prompt, execute the following command:  
+
+```console
+C:\Users\your-user> ffmpeg -i video -ss 00:00:01 -vframes 1 bg.png
+```
+
 ## The scripts
 
-To use the provided scripts, make sure to activate your python environment, that can be accomplished by:
+To use the provided scripts, first make sure to activate your python environment:
+
+### On Linux Distributions 
+
+On your terminal, execute the following command:
 
 ```console
 user@computer:~$ conda activate <enviroment_name>
+```
+
+### On Windows
+
+On your anaconda command prompt, execute the following command:  
+
+```console
+C:\Users\your-user> conda activate <enviroment_name>
 ```
 
 ### [PCA Analyser](./pcaAnalyser.py)
