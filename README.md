@@ -181,6 +181,6 @@ This scripts takes as input a detection log file and procuces a heatmap plot, a 
 (<enviroment_name>) user@computer:~/proj-pca$ python heatmapPlot.py log_file
 ```
 
-## Doubts ?
+## Any question
 
 Feel free to contact me at richardsonsantiago@ufrn.edu.br
