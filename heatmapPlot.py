@@ -52,7 +52,7 @@ if __name__ == '__main__':
         yticks=list(range(0, args.frameHeight, 60))
     )
 
-    axes[0].plot(x, y, 'r')
+    axes[0].plot(x, y, 'k')
 
     # Evaluate a gaussian the kernel density estimation on a regular grid of nbins x nbins
     k = kde.gaussian_kde(points.T)
