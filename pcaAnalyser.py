@@ -125,7 +125,7 @@ if __name__ == '__main__':
     upper_white = np.array([160, 160, 160])
 
     if(args.save_video):
-        resultFileName = args.video.split('/')[-1].split('.')[0] + '_result.mp4'
+        resultFileName = args.video.split('/')[-1].split('.')[0] + '_result.avi'
 
         outWriter = cv.VideoWriter(
             resultFileName,

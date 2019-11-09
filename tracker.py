@@ -133,7 +133,7 @@ if __name__ == '__main__':
     cv.resizeWindow(result_win, 640, 528)
 
     if(args.save_video):
-        resultFileName = args.video.split('/')[-1].split('.')[0] + '_result.mp4'
+        resultFileName = args.video.split('/')[-1].split('.')[0] + '_result.avi'
 
         outWriter = cv.VideoWriter(
             resultFileName,
