@@ -20,7 +20,7 @@ First, install [Anaconda](https://www.anaconda.com/distribution/) or [Miniconda]
 
 Now, create a python virtual environment and install the required packages following the commands. Substitute **<environment_name>** with a name for your environment
 
-#### On Linux Distributions 
+#### On Linux Distributions
 
 Open your terminal and execute the following commands:
 
@@ -40,33 +40,11 @@ C:\Users\your-user> conda activate <enviroment_name> || source activate <envirom
 (<enviroment_name>) C:\Users\your-user> conda install -c loopbio -c conda-forge -c pkgw-forge ffmpeg numpy==1.16.3 opencv==3.4.3 matplotlib scipy pyserial
 ```
 
-### Background Image
-
-For the tools here presented an image of the experiment scene without the animal present is necessary, in most cases, the first frame is this image. To extract the first frame using the [ffmpeg](https://ffmpeg.org/) tool use the following comand, substituting **video** with the path to the video file:
-
-
-#### On Linux Distributions 
-
-On your terminal, execute the following command:
-
-```console
-user@computer:~$ ffmpeg -i video -ss 00:00:01 -vframes 1 bg.png
-```
-
-
-#### On Windows
-
-On your anaconda command prompt, execute the following command:  
-
-```console
-C:\Users\your-user> ffmpeg -i video -ss 00:00:01 -vframes 1 bg.png
-```
-
 ## The scripts
 
 To use the provided scripts, first make sure to activate your python environment:
 
-### On Linux Distributions 
+### On Linux Distributions
 
 On your terminal, execute the following command:
 
@@ -89,8 +67,12 @@ C:\Users\your-user> conda activate <enviroment_name>
 This script aims to track the mice and detect the head direction during behavioral neuroscience experiments. For testing, use the following suggested commands:
 
 ```console
-(<enviroment_name>) user@computer:~/proj-pca$ python pcaAnalyser.py [-h] [--color-mask] [--both-axis] [--show-mask] [--save-video] video bg_image
+(<enviroment_name>) user@computer:~/proj-pca$ python pcaAnalyser.py [-h] [--color-mask] [--both-axis] [--show-mask] [--save-video] video
 ```
+
+Required arguments:
+
+* *video*: Path to the video file to be processed.
 
 Optional arguments:
 
@@ -100,11 +82,6 @@ Optional arguments:
 * *--show-mask*: Displays a window with the segmented mask.
 * *--save-video*: Create a video file with the analysis result.
 
-Required arguments:
-
-* *video*: Path to the video file to be processed.
-* *bg_image*: Path to the background image without the animal in the scene.
-
 ### [Tracker](./tracker.py)
 
 ![tracker_GIF](./readme_imgs/tracker.gif)
@@ -112,8 +89,12 @@ Required arguments:
 This script aims to track mice throughout a neuroscience experiment detecting when the mice is present in a previously selected region. Usage:
 
 ```console
-(<enviroment_name>) user@computer:~/proj-pca$ python tracker.py [-h] [--draw-axis] [--save-video] [--color-mask] video bg_image
+(<enviroment_name>) user@computer:~/proj-pca$ python tracker.py [-h] [--draw-axis] [--save-video] [--color-mask] video
 ```
+
+Required arguments:
+
+* *video*: Path to the video file to be processed.
 
 Optional arguments:
 
@@ -122,11 +103,6 @@ Optional arguments:
 * *--color-mask*: Draw a colored mask over the detection.
 * *--save-video*: Create a video file with the analysis results.
 * *--log-position*: Creates a text file with the (x, y) position of the tracked mice.
-
-Required arguments:
-
-* *video*: Path to the video file to be processed.
-* *bg_image*: Path to the background image without the animal in the scene.
 
 ### [Tracker with Arduino integration](./trackerArduino.py)
 
@@ -137,8 +113,12 @@ This script is an integration of the tracking system with Arduino-based developm
 To utilize the script first, upload the [Arduino file](./trackerArduinoFile.ino) to your microcontroller and make sure that the serial communication is working. Then, in your terminal, run the following command:
 
 ```console
-(<enviroment_name>) user@computer:~/proj-pca$ python trackerArduino.py [-h] [--draw-axis] [--save-video] [--color-mask] [--log-position] video bg_image
+(<enviroment_name>) user@computer:~/proj-pca$ python trackerArduino.py [-h] [--draw-axis] [--save-video] [--color-mask] [--log-position] video
 ```
+
+Required arguments:
+
+* *video*: Path to the video file to be processed.
 
 Optional arguments:
 
@@ -147,11 +127,6 @@ Optional arguments:
 * *--color-mask*: Draw a colored mask over the detection.
 * *--save-video*: Create a video file with the analysis results.
 * *--log-position*: Creates a text file with the (x, y) position of the tracked mice.
-
-Required arguments:
-
-* *video*: Path to the video file to be processed.
-* *bg_image*: Path to the background image without the animal in the scene.
 
 ### [Detections Analyser](./detectionsAnalyser.py)
 
@@ -178,9 +153,15 @@ Avalible commands:
 This scripts takes as input a detection log file and procuces a heatmap plot, a window containg the plot will be displayed. Usage:
 
 ```console
-(<enviroment_name>) user@computer:~/proj-pca$ python heatmapPlot.py log_file
+(<enviroment_name>) user@computer:~/proj-pca$ python heatmapPlot.py log_file frameWidth frameHeight
 ```
 
-## Any question
+Required arguments:
+
+* *log_file*: Path to the log file file to be processed.
+* *frameWidth*: Frame width of the processed video.
+* *frameHeight*: Frame height of the processed video.
+
+## Any questions?
 
 Feel free to contact me at richardsonsantiago@ufrn.edu.br
