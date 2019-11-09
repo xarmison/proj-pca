@@ -70,11 +70,11 @@ This script aims to track the mice and detect the head direction during behavior
 (<enviroment_name>) user@computer:~/proj-pca$ python pcaAnalyser.py [-h] [--color-mask] [--both-axis] [--show-mask] [--save-video] video
 ```
 
-Required arguments:
+**Required arguments**:
 
 * *video*: Path to the video file to be processed.
 
-Optional arguments:
+**Optional arguments**:
 
 * *-h*, *--help*: Show a help message and exit.
 * *--color-mask*: Draw a colored mask over the detection.
@@ -92,11 +92,11 @@ This script aims to track mice throughout a neuroscience experiment detecting wh
 (<enviroment_name>) user@computer:~/proj-pca$ python tracker.py [-h] [--draw-axis] [--save-video] [--color-mask] video
 ```
 
-Required arguments:
+**Required arguments**:
 
 * *video*: Path to the video file to be processed.
 
-Optional arguments:
+**Optional arguments**:
 
 * *-h*, *--help*: Show a help message and exit.
 * *--draw-axis*: Draw both PCA axis.
@@ -116,11 +116,11 @@ To utilize the script first, upload the [Arduino file](./trackerArduinoFile.ino)
 (<enviroment_name>) user@computer:~/proj-pca$ python trackerArduino.py [-h] [--draw-axis] [--save-video] [--color-mask] [--log-position] video
 ```
 
-Required arguments:
+**Required arguments**:
 
 * *video*: Path to the video file to be processed.
 
-Optional arguments:
+**Optional arguments**:
 
 * *-h*, *--help*: Show a help message and exit.
 * *--draw-axis*: Draw both PCA axis.
@@ -156,7 +156,7 @@ This scripts takes as input a detection log file and procuces a heatmap plot, a 
 (<enviroment_name>) user@computer:~/proj-pca$ python heatmapPlot.py log_file frameWidth frameHeight
 ```
 
-Required arguments:
+**Required arguments**:
 
 * *log_file*: Path to the log file file to be processed.
 * *frameWidth*: Frame width of the processed video.
