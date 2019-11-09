@@ -22,8 +22,9 @@ def parser_args():
 
 def fileGenerator(filePath):
     with open(filePath, 'r')  as file:
+        file.readline()
         for lineNum, line in enumerate(file):
-            yield lineNum, line.rstrip().split(' ')
+            yield lineNum + 1, line.rstrip().split(',')
 
 def editFrame(frame, lineNum, changes):
     print('\n>>> Drag the mouse to select, the disired centre should be in the crosshair.')
@@ -34,7 +35,7 @@ def editFrame(frame, lineNum, changes):
     # Store the changes made into the changes list
     changes.append({
         'line': lineNum,
-        'content': f'{x + w//2} {y + h//2}'
+        'content': f'{x + w//2},{y + h//2}'
     })
     
     

@@ -1,5 +1,7 @@
+from matplotlib.ticker import FuncFormatter
 from matplotlib import pyplot as plt
 from scipy.stats import kde
+import pandas as pd
 import numpy as np
 import argparse
 
@@ -13,30 +15,43 @@ def parse_args():
         help='Path to the log file'
     )
 
+    parser.add_argument(
+        'frameWidth', type=int,
+        help='Frame width of the processed video'
+    )
+
+    parser.add_argument(
+        'frameHeight', type=int,
+        help='Frame height of the processed video'
+    )
+
     return parser.parse_args()
 
-def processFile(logFile):
-    x, y = [], []
-
-    with open(logFile, 'r') as file:
-        for line in file:
-            line = line.split(' ')
-
-            x.append(int(line[0]))
-            y.append(int(line[1]))
-
-    return np.asarray(x), np.asarray(y), np.vstack((x, y)).T 
+def numberFormatter(x, pos):
+    return f'{int(x * 10e5)}'
 
 if __name__ == '__main__':
     args = parse_args()
 
-    x, y, points = processFile(args.log_file)
+    data = pd.read_csv(args.log_file)
+    x, y = data.x.values, data.y.values
+    points = np.vstack((x, y)).T 
+
+    # x, y, points = processFile(args.log_file)
 
     nbins = 20
 
-    fig, axes = plt.subplots(ncols=2, nrows=1, figsize=(10, 5))
+    fig, axes = plt.subplots(ncols=2, nrows=1, figsize=(12, 5))
 
-    axes[0].set_title('Trajectory')
+    #axes[0].set_title('Trajectory')
+    axes[0].set(
+        title='Trajectory', 
+        xlim=(0, args.frameWidth), 
+        xticks=list(range(0, args.frameWidth, 60)),
+        ylim=(0, args.frameHeight),
+        yticks=list(range(0, args.frameHeight, 60))
+    )
+
     axes[0].plot(x, y, 'r')
 
     # Evaluate a gaussian the kernel density estimation on a regular grid of nbins x nbins
@@ -45,9 +60,15 @@ if __name__ == '__main__':
     zi = k(np.vstack([xi.flatten(), yi.flatten()]))
 
     # Plot density with shading
-    axes[1].set_title('Heatmap')
+    #axes[1].set_title('Heatmap')
+    axes[1].set(
+        title='Heatmap', 
+        xticks=list(range(0, args.frameWidth, 60)),
+        yticks=list(range(0, args.frameHeight, 60))
+    )
+
     pc = axes[1].pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud', cmap=plt.cm.jet)
 
-    fig.colorbar(pc, ticks=[])
+    fig.colorbar(pc, format=FuncFormatter(numberFormatter))
     plt.tight_layout()
     plt.show()
