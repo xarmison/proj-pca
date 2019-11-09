@@ -13,11 +13,6 @@ def parser_args():
         help='Path to the file file to be processed.'
     )
 
-    # parser.add_argument(
-    #     'bg_image', type=str,
-    #     help='Path to the background image of the scene.'
-    # )
-
     parser.add_argument(
         '--draw-axis', action='store_true',
         help='Draw both PCA axis.'
@@ -50,16 +45,16 @@ def drawAxis(img, p_, q_, colour, scale):
     # Here we lengthen the arrow by a factor of scale
     q[0] = p[0] - scale * hypotenuse * cos(angle)
     q[1] = p[1] - scale * hypotenuse * sin(angle)
-    cv.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv.LINE_AA)
+    cv.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 2, cv.LINE_AA)
 
     # create the arrow hooks
     p[0] = q[0] + 9 * cos(angle + pi / 4)
     p[1] = q[1] + 9 * sin(angle + pi / 4)
-    cv.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv.LINE_AA)
+    cv.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 2, cv.LINE_AA)
 
     p[0] = q[0] + 9 * cos(angle - pi / 4)
     p[1] = q[1] + 9 * sin(angle - pi / 4)
-    cv.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv.LINE_AA)
+    cv.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 2, cv.LINE_AA)
 
 def getOrientation(pts, img, draw):
     # Construct a buffer used by the pca analysis
@@ -80,19 +75,17 @@ def getOrientation(pts, img, draw):
     # Draw the principal components
     cv.circle(img, cntr, 3, (42, 89, 247), -1)
     p1 = (
-        cntr[0] + 0.02 * eigenvectors[0, 0] * eigenvalues[0, 0], 
+        cntr[0] + 0.02 * eigenvectors[0, 0] * eigenvalues[0, 0],
         cntr[1] + 0.02 * eigenvectors[0, 1] * eigenvalues[0, 0]
     )
     p2 = (
-        cntr[0] - 0.02 * eigenvectors[1,0] * eigenvalues[1,0], 
+        cntr[0] - 0.02 * eigenvectors[1,0] * eigenvalues[1,0],
         cntr[1] - 0.02 * eigenvectors[1,1] * eigenvalues[1,0]
     )
 
-    #drawAxis(img, cntr, p1, (0, 255, 0), 2)
-    
     if(draw):
-        drawAxis(img, cntr, p1, (0, 255, 0), 2)    
-        drawAxis(img, cntr, p2, (255, 255, 0), 5)
+        drawAxis(img, cntr, p1, (91, 249, 77), 2)
+        drawAxis(img, cntr, p2, (190, 192, 91), 2)
 
     # orientation in radians
     angle = atan2(eigenvectors[0, 1], eigenvectors[0, 0])
@@ -103,6 +96,8 @@ if __name__ == '__main__':
     args = parser_args()
 
     cap = cv.VideoCapture(args.video)
+    frameWidth = int(cap.get(3)) 
+    frameHeight = int(cap.get(4))
 
     if (not cap.isOpened()):
         print('Error opening video stream')
@@ -110,7 +105,7 @@ if __name__ == '__main__':
 
     # First frame as the background image
     ret, bg_img = cap.read()
-
+    
     if(not ret):
         print('Error readning video stream')
         exit()
@@ -127,8 +122,11 @@ if __name__ == '__main__':
         exit()
 
     rois = cv.selectROIs('ROIs Selection', frame, False)
-
     cv.destroyWindow('ROIs Selection')
+
+    # Counter for each selected region    
+    roisCounter = [ 0 for _ in range(len(rois)) ]
+    statsLogFile = args.video.split('/')[-1].split('.')[0] + '_stats.txt'
 
     result_win = 'Tracker'
     cv.namedWindow(result_win, cv.WINDOW_KEEPRATIO)
@@ -140,9 +138,16 @@ if __name__ == '__main__':
         outWriter = cv.VideoWriter(
             resultFileName,
             cv.VideoWriter_fourcc('M', 'J', 'P', 'G'),
-            50, (1280, 720)
+            30, (frameWidth, frameHeight)
         )
     
+    # Create file for position loging 
+    if(args.log_position):
+        logFileName = args.video.split('/')[-1].split('.')[0] + '_log.csv'
+        
+        with open(logFileName, 'w') as logFile:
+            logFile.write('x,y\n')
+
     while(cap.isOpened()):
         ret, frame = cap.read()
 
@@ -199,44 +204,71 @@ if __name__ == '__main__':
         
         # Draw ROI and check if the mice is inside 
         if(rois is not None):
-            for roi in rois:
+            if(args.log_position):
+                with open(statsLogFile, 'w') as logFile:
+                    logFile.write('Conuters for the regions\n')
+
+            for index, roi in enumerate(rois):
                 x, y, w, h = roi
                 
                 if(any(cntr)):
                     if(x <= cntr[0] <= x+w and y <= cntr[1] <= y+h):
                         cv.rectangle(
-                            frame,
-                            (x, y),
+                            frame, (x, y),
                             (x + w, y + h),
                             (128, 244, 66), 2
                         )
+
+                        roisCounter[index] += 1
+                        cv.putText(
+                            frame, f'{index}: {roisCounter[index]}', (x, y - 5),
+                            cv.FONT_HERSHEY_COMPLEX,
+                            0.5, (255, 255, 255)
+                        )
+
                     else:
                         cv.rectangle(
-                            frame,
-                            (x, y),
+                            frame, (x, y),
                             (x + w, y + h),
                             (80, 80, 80), 2
                         )
+
+                        cv.putText(
+                            frame, f'{index}: {roisCounter[index]}', (x, y - 5),
+                            cv.FONT_HERSHEY_COMPLEX,
+                            0.5, (255, 255, 255)
+                        )
                 else:
                     cv.rectangle(
-                        frame,
-                        (x, y),
+                        frame, (x, y),
                         (x + w, y + h),
                         (80, 80, 80), 2
                     )
 
+                    cv.putText(
+                        frame, f'{index}: {roisCounter[index]}', (x, y - 5),
+                        cv.FONT_HERSHEY_COMPLEX,
+                        0.5, (255, 255, 255)
+                    )
+
+                if(args.log_position):
+                    # Saves the rois counter to file
+                    with open(statsLogFile, 'a') as logFile:
+                        logFile.write(f'Region {index}: {roisCounter[index]} frames\n')
+
         # Save position to file
         if(args.log_position):
-            logFileName = args.video.split('/')[-1].split('.')[0] + '_log.txt'
+            logFileName = args.video.split('/')[-1].split('.')[0] + '_log.csv'
 
             with open(logFileName, 'a') as logFile:
-                if(any(cntr)):
-                    logFile.write(f'{cntr[0]} {cntr[1]}\n')
+                if(cntr[0] > 50 and cntr[1] > 50):
+                    # Changes the coordinates' center to the bottom left for later plotting
+                    logFile.write(f'{cntr[0]},{frameHeight - cntr[1]}\n')
 
         if(args.color_mask):
             # Change the color of the mask
             colored_mask = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
-            colored_mask[np.where((colored_mask == [255, 255, 255]).all(axis = 2))] = [0, 0, 255]
+            colored_mask[np.where((colored_mask == [255, 255, 255]).all(axis = 2))] = [222, 70, 222]
 
             # Apply the mask
             frame = cv.add(frame, colored_mask)
