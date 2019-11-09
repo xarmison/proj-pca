@@ -13,10 +13,10 @@ def parser_args():
         help='Path to the file file to be processed.'
     )
 
-    parser.add_argument(
-        'bg_image', type=str,
-        help='Path to the background image of the scene.'
-    )
+    # parser.add_argument(
+    #     'bg_image', type=str,
+    #     help='Path to the background image of the scene.'
+    # )
 
     parser.add_argument(
         '--draw-axis', action='store_true',
@@ -102,16 +102,17 @@ def getOrientation(pts, img, draw):
 if __name__ == '__main__':
     args = parser_args()
 
-    bg_img = cv.imread(args.bg_image)
-
-    if(bg_img.size is None):
-        print('Error opening background image')
-        exit()
-
     cap = cv.VideoCapture(args.video)
 
     if (not cap.isOpened()):
         print('Error opening video stream')
+        exit()
+
+    # First frame as the background image
+    ret, bg_img = cap.read()
+
+    if(not ret):
+        print('Error readning video stream')
         exit()
 
     # Color range of the mice un the subtracted image
@@ -134,10 +135,12 @@ if __name__ == '__main__':
     cv.resizeWindow(result_win, 640, 528)
 
     if(args.save_video):
+        resultFileName = args.video.split('/')[-1].split('.')[0] + '_result.mp4'
+
         outWriter = cv.VideoWriter(
-            'result.avi',
+            resultFileName,
             cv.VideoWriter_fourcc('M', 'J', 'P', 'G'),
-            50, (640, 480)
+            50, (1280, 720)
         )
     
     while(cap.isOpened()):
@@ -227,7 +230,8 @@ if __name__ == '__main__':
             logFileName = args.video.split('/')[-1].split('.')[0] + '_log.txt'
 
             with open(logFileName, 'a') as logFile:
-                logFile.write(f'{cntr[0]} {cntr[1]}\n')
+                if(any(cntr)):
+                    logFile.write(f'{cntr[0]} {cntr[1]}\n')
 
         if(args.color_mask):
             # Change the color of the mask
@@ -242,7 +246,7 @@ if __name__ == '__main__':
         if(args.save_video):
             outWriter.write(frame)
 
-        key = cv.waitKey(5)
+        key = cv.waitKey(10)
         if(key == 27 or key == 113):
             cv.destroyAllWindows()
             cap.release()
