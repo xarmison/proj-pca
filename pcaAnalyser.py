@@ -14,11 +14,6 @@ def parser_args():
     )
 
     parser.add_argument(
-        'bg_image', type=str,
-        help='Path to the background image of the scene.'
-    )
-
-    parser.add_argument(
         '--color-mask', action='store_true',
         help='Draw a colored mask over the detection.'
     )
@@ -50,16 +45,16 @@ def drawAxis(img, p_, q_, colour, scale):
     # Here we lengthen the arrow by a factor of scale
     q[0] = p[0] - scale * hypotenuse * cos(angle)
     q[1] = p[1] - scale * hypotenuse * sin(angle)
-    cv.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv.LINE_AA)
+    cv.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 2, cv.LINE_AA)
 
     # create the arrow hooks
     p[0] = q[0] + 9 * cos(angle + pi / 4)
     p[1] = q[1] + 9 * sin(angle + pi / 4)
-    cv.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv.LINE_AA)
+    cv.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 2, cv.LINE_AA)
 
     p[0] = q[0] + 9 * cos(angle - pi / 4)
     p[1] = q[1] + 9 * sin(angle - pi / 4)
-    cv.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 1, cv.LINE_AA)
+    cv.line(img, (int(p[0]), int(p[1])), (int(q[0]), int(q[1])), colour, 2, cv.LINE_AA)
 
 def getOrientation(pts, img, drawBoth):
     # Construct a buffer used by the pca analysis
@@ -78,7 +73,7 @@ def getOrientation(pts, img, drawBoth):
     cntr = (int(mean[0, 0]), int(mean[0, 1]))
 
     # Draw the principal components
-    cv.circle(img, cntr, 3, (255, 0, 255), 2)
+    cv.circle(img, cntr, 3, (255, 0, 255), -1)
     p1 = (
         cntr[0] + 0.02 * eigenvectors[0, 0] * eigenvalues[0, 0],
         cntr[1] + 0.02 * eigenvectors[0, 1] * eigenvalues[0, 0]
@@ -88,10 +83,10 @@ def getOrientation(pts, img, drawBoth):
         cntr[1] - 0.02 * eigenvectors[1,1] * eigenvalues[1,0]
     )
 
-    drawAxis(img, cntr, p1, (0, 255, 0), 2)
+    drawAxis(img, cntr, p1, (91, 249, 77), 2)
 
     if(drawBoth):
-        drawAxis(img, cntr, p2, (255, 255, 0), 5)
+        drawAxis(img, cntr, p2, (190, 192, 91), 2)
 
     # orientation in radians
     angle = atan2(eigenvectors[0, 1], eigenvectors[0, 0])
@@ -101,16 +96,19 @@ def getOrientation(pts, img, drawBoth):
 if __name__ == '__main__':
     args = parser_args()
 
-    bg_img = cv.imread(args.bg_image)
-
-    if(bg_img.size is None):
-        print('Error opening background image')
-        exit()
-
     cap = cv.VideoCapture(args.video)
+    frameWidth = int(cap.get(3)) 
+    frameHeight = int(cap.get(4))
 
     if (not cap.isOpened()):
         print('Error opening video stream')
+        exit()
+
+    # First frame as the background image
+    ret, bg_img = cap.read()
+    
+    if(not ret):
+        print('Error readning video stream')
         exit()
 
     if(args.show_mask):
@@ -120,18 +118,19 @@ if __name__ == '__main__':
 
     result_win = "PCA Analyser"
     cv.namedWindow(result_win, cv.WINDOW_KEEPRATIO)
-    cv.resizeWindow(result_win, 450, 375)
-    cv.moveWindow(result_win, 453, 0)
+    cv.resizeWindow(result_win, 640, 528)
 
     # Color range of the mice un the subtracted image
     lower_white = np.array([100, 100, 100])
     upper_white = np.array([160, 160, 160])
 
     if(args.save_video):
+        resultFileName = args.video.split('/')[-1].split('.')[0] + '_result.mp4'
+
         outWriter = cv.VideoWriter(
-            'result.avi',
+            resultFileName,
             cv.VideoWriter_fourcc('M', 'J', 'P', 'G'),
-            50, (640, 480)
+            30, (frameWidth, frameHeight)
         )
 
     while(cap.isOpened()):
