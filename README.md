@@ -84,9 +84,9 @@ This script aims to track the mice and detect the head direction during behavior
 
 ### [Tracker](./tracker.py)
 
-![tracker_GIF](./readme_imgs/tracker.gif)
+![tracker_GIF](./readme_imgs/tracker2.gif)
 
-This script aims to track mice throughout a neuroscience experiment detecting when the mice is present in a previously selected region. Usage:
+This script aims to track mice throughout a neuroscience experiment detecting when the mice are present in a previously selected region, with that the program is able to keep track of how many frames the animal stayed inside each zone. Usage:
 
 ```console
 (<enviroment_name>) user@computer:~/proj-pca$ python tracker.py [-h] [--draw-axis] [--save-video] [--color-mask] video
