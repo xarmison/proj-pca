@@ -2,7 +2,7 @@
 
 ![projPca](./readme_imgs/pca.png)
 
-This project **was developed and tested for Ubuntu 16.04 and 18.04.**
+This project **was developed and tested for Ubuntu and Windows**
 
 To use the provided tools, the first step is to clone this repository, which can be can be accomplished by:
 
