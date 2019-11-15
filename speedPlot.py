@@ -24,7 +24,7 @@ if __name__ == '__main__':
     axes.set(
         title='Speed during video', 
         xlabel='Time (s)',
-        ylabel='Speed ($Pixel s^{-1}$)'
+        ylabel='Speed ($Pixel * s^{-1}$)'
     )
 
     axes.plot(data.time, data.speed)
