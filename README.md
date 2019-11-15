@@ -89,12 +89,13 @@ This script aims to track the mice and detect the head direction during behavior
 This script aims to track mice throughout a neuroscience experiment detecting when the mice are present in a previously selected region, with that the program is able to keep track of how many frames the animal stayed inside each zone. Usage:
 
 ```console
-(<enviroment_name>) user@computer:~/proj-pca$ python tracker.py [-h] [--draw-axis] [--save-video] [--color-mask] video
+(<enviroment_name>) user@computer:~/proj-pca$ python tracker.py video frame_rate [--draw-axis] [--save-video] [--color-mask] [--log-position] [--log-speed]
 ```
 
 **Required arguments**:
 
 * *video*: Path to the video file to be processed.
+* *frame rate*: Frame rate of the video file to be processed.
 
 **Optional arguments**:
 
@@ -103,6 +104,20 @@ This script aims to track mice throughout a neuroscience experiment detecting wh
 * *--color-mask*: Draw a colored mask over the detection.
 * *--save-video*: Create a video file with the analysis results.
 * *--log-position*: Creates a text file with the (x, y) position of the tracked mice.
+* *--log-speed*: Logs the speed of the center of mass to file.
+
+A statistics file containing the following information will be created.
+
+```text
+Counters for the regions considering 30fps video
+
+Traveled distance: 16971.568 pixels
+Region 0: 3995 frames, 133.167s
+Region 1: 4105 frames, 136.833s
+Region 2: 852 frames, 28.400s
+Region 3: 727 frames, 24.233s
+Region 4: 1378 frames, 45.933s
+```
 
 ### [Tracker with Arduino integration](./trackerArduino.py)
 
@@ -150,7 +165,7 @@ Avalible commands:
 
 ![heatmapPlot](./readme_imgs/heatmap.png)
 
-This scripts takes as input a detection log file and procuces a heatmap plot, a window containg the plot will be displayed. Usage:
+This scripts takes as input a detection log file produced by the *tracker.py* script used with the *--log-position* option, and produces a heatmap plot, a window containg the plot will be displayed. Usage:
 
 ```console
 (<enviroment_name>) user@computer:~/proj-pca$ python heatmapPlot.py log_file frameWidth frameHeight
@@ -161,6 +176,20 @@ This scripts takes as input a detection log file and procuces a heatmap plot, a 
 * *log_file*: Path to the log file file to be processed.
 * *frameWidth*: Frame width of the processed video.
 * *frameHeight*: Frame height of the processed video.
+
+### [Speed Plot](./speedPlot.py)
+
+![speedPlot](./readme_imgs/speed.png)
+
+This scripts takes as input a speed log file produced by the *tracker.py* script used with the *--log-speed* option, and produces a speed plot, a window containg the plot will be displayed. Usage:
+
+```console
+(<enviroment_name>) user@computer:~/proj-pca$ python speedPlot.py log_file
+```
+
+**Required arguments**:
+
+* *log_file*: Path to the log file file to be processed.
 
 ## Any questions?
 
