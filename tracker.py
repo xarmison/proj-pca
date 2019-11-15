@@ -10,7 +10,12 @@ def parser_args():
 
     parser.add_argument(
         'video', type=str,
-        help='Path to the file file to be processed.'
+        help='Path to the video file to be processed.'
+    )
+
+    parser.add_argument(
+        'frame_rate', type=int,
+        help='Frame rate of the video file to be processed.'
     )
 
     parser.add_argument(
@@ -31,6 +36,11 @@ def parser_args():
     parser.add_argument(
         '--log-position', action='store_true',
         help='Logs the position of the center of mass to file.'
+    )
+
+    parser.add_argument(
+        '--log-speed', action='store_true',
+        help='Logs the speed of the center of mass to file.'
     )
 
     return parser.parse_args()
@@ -126,7 +136,7 @@ if __name__ == '__main__':
 
     # Counter for each selected region    
     roisCounter = [ 0 for _ in range(len(rois)) ]
-    statsLogFile = args.video.split('/')[-1].split('.')[0] + '_stats.txt'
+    statsLogFile = f"./logs/{args.video.split('/')[-1].split('.')[0]}_stats.txt"
 
     result_win = 'Tracker'
     cv.namedWindow(result_win, cv.WINDOW_KEEPRATIO)
@@ -141,13 +151,24 @@ if __name__ == '__main__':
             30, (frameWidth, frameHeight)
         )
     
-    # Create file for position loging 
-    if(args.log_position):
-        logFileName = args.video.split('/')[-1].split('.')[0] + '_log.csv'
-        
-        with open(logFileName, 'w') as logFile:
+    # Create file for position loging
+    posLogFile = f"./logs/{args.video.split('/')[-1].split('.')[0]}_pos.csv"
+    if(args.log_position):        
+        with open(posLogFile, 'w') as logFile:
             logFile.write('x,y\n')
 
+    # Varibles fo tracking the mice's position
+    previous_pos = (0, 0)
+    current_pos = (0, 0)
+
+    # Create file for speed loging 
+    speedLogFile = f"./logs/{args.video.split('/')[-1].split('.')[0]}_speed.csv"
+    if(args.log_speed):        
+        with open(speedLogFile, 'w') as logFile:
+            logFile.write('time,speed\n')
+
+    frameIndex = 0
+    traveledDistance = 0
     while(cap.isOpened()):
         ret, frame = cap.read()
 
@@ -187,7 +208,6 @@ if __name__ == '__main__':
         else:
             contours = returns[0]
 
-        cntr = (0, 0)
         for i, c in enumerate(contours):
             # Calculate the area of each contour
             area = cv.contourArea(c)
@@ -200,19 +220,38 @@ if __name__ == '__main__':
             cv.drawContours(frame, contours, i, (255, 0, 255), 2)
 
             # Find the orientation of each shape
-            cntr, _ = getOrientation(c, frame, args.draw_axis)
+            current_pos, _ = getOrientation(c, frame, args.draw_axis)
+
+        speed = sqrt(
+            (previous_pos[0] - current_pos[0])**2 + 
+            (previous_pos[1] - current_pos[1])**2
+        )
+        traveledDistance += speed
+        previous_pos = current_pos
+
+        cv.putText(
+            frame, f'{speed:.3f}', current_pos,
+            cv.FONT_HERSHEY_COMPLEX,
+            0.5, (255, 255, 255)
+        )
+
+        if(args.log_speed):
+            if(current_pos[0] > 50 and current_pos[1] > 50):        
+                with open(speedLogFile, 'a') as logFile:
+                    logFile.write(f'{frameIndex * (1/float(args.frame_rate)):.3f},{speed:.3f}\n')
         
         # Draw ROI and check if the mice is inside 
         if(rois is not None):
             if(args.log_position):
                 with open(statsLogFile, 'w') as logFile:
-                    logFile.write('Conuters for the regions\n')
+                    logFile.write(f'\tCounters for the regions considering {args.frame_rate}fps video\n\n')
+                    logFile.write(f'Traveled distance: {traveledDistance:.3f} pixels\n')
 
             for index, roi in enumerate(rois):
                 x, y, w, h = roi
                 
-                if(any(cntr)):
-                    if(x <= cntr[0] <= x+w and y <= cntr[1] <= y+h):
+                if(any(current_pos)):
+                    if(x <= current_pos[0] <= x+w and y <= current_pos[1] <= y+h):
                         cv.rectangle(
                             frame, (x, y),
                             (x + w, y + h),
@@ -254,16 +293,15 @@ if __name__ == '__main__':
                 if(args.log_position):
                     # Saves the rois counter to file
                     with open(statsLogFile, 'a') as logFile:
-                        logFile.write(f'Region {index}: {roisCounter[index]} frames\n')
+                        logFile.write(f'Region {index}: {roisCounter[index]} frames')
+                        logFile.write(f', {roisCounter[index] * (1/float(args.frame_rate)):.3f}s\n')
 
         # Save position to file
         if(args.log_position):
-            logFileName = args.video.split('/')[-1].split('.')[0] + '_log.csv'
-
-            with open(logFileName, 'a') as logFile:
-                if(cntr[0] > 50 and cntr[1] > 50):
+            with open(posLogFile, 'a') as logFile:
+                if(current_pos[0] > 50 and current_pos[1] > 50):
                     # Changes the coordinates' center to the bottom left for later plotting
-                    logFile.write(f'{cntr[0]},{frameHeight - cntr[1]}\n')
+                    logFile.write(f'{current_pos[0]},{frameHeight - current_pos[1]}\n')
 
         if(args.color_mask):
             # Change the color of the mask
@@ -274,6 +312,7 @@ if __name__ == '__main__':
             frame = cv.add(frame, colored_mask)
 
         cv.imshow(result_win, frame)
+        frameIndex += 1
 
         if(args.save_video):
             outWriter.write(frame)
