@@ -27,7 +27,8 @@ if __name__ == '__main__':
         ylabel='Speed ($Pixel * s^{-1}$)'
     )
 
-    axes.plot(data.time, data.speed)
-
+    #axes.plot(data.time, data.speed)
+    axes.plot(data.query('speed < 200').time, data.query('speed < 200').speed)
+    
     plt.tight_layout()
     plt.show()
