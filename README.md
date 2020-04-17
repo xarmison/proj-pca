@@ -99,12 +99,12 @@ This script aims to track mice throughout a neuroscience experiment detecting wh
 
 **Optional arguments**:
 
-* *-h*, *--help*: Show a help message and exit.
-* *--draw-axis*: Draw both PCA axis.
-* *--color-mask*: Draw a colored mask over the detection.
-* *--save-video*: Create a video file with the analysis results.
-* *--log-position*: Creates a text file with the (x, y) position of the tracked mice.
-* *--log-speed*: Logs the speed of the center of mass to file.
+* *-h*, *--help*: Shows a help message and exit.
+* *--draw-axis*: Draws both axis found through PCA. 
+* *--color-mask*: Draws a colored mask over the detection.
+* *--save-video*: Creates a video file with the analysis results.
+* *--log-position*: Creates a log file with the (x, y) position coordinates of the tracked animal.
+* *--log-speed*: Creates a log file with the speed of the tracked animal.
 
 A statistics file containing the following information will be created.
 
