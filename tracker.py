@@ -1,4 +1,4 @@
-from utils import drawAxis, getOrientation
+from utils import getOrientation
 import numpy as np
 import cv2 as cv
 import argparse
