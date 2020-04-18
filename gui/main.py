@@ -1,9 +1,195 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QSizePolicy, QFileDialog
 from PyQt5 import QtCore, QtGui, QtWidgets
+from utils import getOrientation
+from time import sleep
 from os import path
 import numpy as np
 import cv2 as cv
 import sys
+
+class FrameProcessor:
+    def __init__(self, options):
+        
+        self.options = options
+        self.set_options(self.options)
+
+        self.lower_white = np.array([self.options['lower_boundary']] * 3)
+        self.upper_white = np.array([self.options['upper_boundary']] * 3)
+
+        # Varibles fo tracking the mice's position
+        self.previous_pos = (0, 0)
+        self.current_pos = (0, 0)
+
+        self.frame_index = 0
+        self.traveled_distance = 0
+
+        self.cap = None
+
+    def load_video(self, file_path):
+        self.file_name = file_path.split('/')[-1].split('.')[0]
+
+        self.cap = cv.VideoCapture(file_path)
+        self.frameWidth = int(self.cap.get(3)) 
+        self.frameHeight = int(self.cap.get(4))
+
+        if (not self.cap.isOpened()):
+            print('Error opening video stream!')
+            exit()
+
+        # First frame as the background image
+        ret, self.bg_img = self.cap.read()
+        
+        if (not ret):
+            print('Error readning video stream')
+            exit()
+
+    def set_options(self, options):
+        self.options = options
+
+        self.lower_white = np.array([self.options['lower_boundary']] * 3)
+        self.upper_white = np.array([self.options['upper_boundary']] * 3)
+
+        # Creates a stream object for writing the output
+        if (self.options['save_video']):
+            result_file_name =  f'{self.file_name}_result.avi'
+
+            self.out_writer = cv.VideoWriter(
+                result_file_name,
+                cv.VideoWriter_fourcc('M', 'J', 'P', 'G'),
+                self.options['frame_rate'], 
+                (self.frameWidth, self.frameHeight)
+            )
+
+        # Creates a file for position logging
+        if (self.options['log_position']):
+            self.pos_log_file = f'./logs/{self.file_name}_pos.csv'
+
+            if not path.isfile(self.pos_log_file): 
+                with open(self.pos_log_file, 'w') as logFile:
+                    logFile.write('x,y\n')
+
+        # Creates a file for position logging
+        if (self.options['log_speed']):
+            self.speed_log_file = f'./logs/{self.file_name}_speed.csv'
+
+            if not path.isfile(self.speed_log_file):
+                with open(self.speed_log_file, 'w') as logFile:
+                    logFile.write('time,speed\n')
+
+    def process_frame(self):
+        
+        if (self.cap is None):
+            print('Load the video file first')
+
+            return None
+
+        ret, frame = self.cap.read()
+
+        if (not ret):
+            print('Error readning video stream')
+            exit()
+        
+        sub_frame = cv.absdiff(frame, self.bg_img)
+           
+        filtered_frame = cv.inRange(sub_frame, self.lower_white, self.upper_white)
+        
+        # Kernel for morphological operation opening
+        kernel3 = cv.getStructuringElement(
+            cv.MORPH_ELLIPSE,
+            (3, 3),
+            (-1, -1)
+        )
+
+        kernel20 = cv.getStructuringElement(
+            cv.MORPH_ELLIPSE,
+            (20, 20),
+            (-1, -1)
+        )
+
+        # Morphological opening
+        mask = cv.dilate(cv.erode(filtered_frame, kernel3), kernel20)
+
+        mask_roi = cv.bitwise_and(sub_frame, sub_frame, mask=mask)
+
+        # Find all the contours in the mask
+        returns = cv.findContours(mask, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
+        
+        # Check what findContours returned
+        contours = []
+        if (len(returns) == 3):
+            contours = returns[1]
+        else:
+            contours = returns[0]
+        
+        for i, c in enumerate(contours):
+            # Calculate the area of each contour
+            area = cv.contourArea(c)
+
+            # Ignore contours that are too small or too large
+            if area < 1e2 or 1e5 < area:
+                continue
+
+            # Draw each contour only for visualisation purposes
+            cv.drawContours(frame, contours, i, (255, 0, 255), 2)
+
+            # Find the orientation of each shape
+            self.current_pos, _ = getOrientation(c, frame, self.options['draw_axis'])
+
+        speed = np.sqrt(
+            (self.previous_pos[0] - self.current_pos[0])**2 + 
+            (self.previous_pos[1] - self.current_pos[1])**2
+        )
+
+        self.traveled_distance += speed
+        self.previous_pos = self.current_pos
+
+        cv.putText(
+            frame, f'{speed:.3f}', self.current_pos,
+            cv.FONT_HERSHEY_COMPLEX,
+            0.5, (255, 255, 255)
+        )
+
+        if(self.options['log_speed']):
+            if(self.current_pos[0] > 50 and self.current_pos[1] > 50):        
+                with open(self.speed_log_file, 'a') as logFile:
+                    logFile.write(f'{self.frame_index * (1/float(self.options["frame_rate"])):.3f},{speed:.3f}\n')
+
+        # Save position to file
+        if(self.options['log_position']):
+            with open(self.pos_log_file, 'a') as logFile:
+                if(self.current_pos[0] > 50 and self.current_pos[1] > 50):
+                    # Changes the coordinates' center to the bottom left for later plotting
+                    logFile.write(f'{self.current_pos[0]},{self.frameHeight - self.current_pos[1]}\n')
+
+        if(self.options['color_mask']):
+            # Change the color of the mask
+            colored_mask = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
+            colored_mask[np.where((colored_mask == [255, 255, 255]).all(axis = 2))] = [222, 70, 222]
+
+            # Apply the mask
+            frame = cv.add(frame, colored_mask)        
+
+        self.frame_index += 1
+        
+        if(self.options['save_video']):
+            self.out_writer.write(frame)
+
+        height, width, _ = frame.shape
+
+        if (height < 660 or width < 1091):
+            padding_height = max(660 - height, 0)//2
+            padding_width = max(1091 - width, 0)//2
+            
+            frame = cv.copyMakeBorder(
+                frame, 
+                padding_height, padding_height, 
+                padding_width, padding_width, 
+                cv.BORDER_CONSTANT
+            )
+        else:
+            frame = cv.resize(frame, (1091, 660))
+
+        return frame
 
 class DisplayImageWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
@@ -20,21 +206,6 @@ class DisplayImageWidget(QtWidgets.QWidget):
     def set_frame(self, image):
 
         height, width, _ = image.shape
-
-        if (height < 660 or width < 1091):
-            padding_height = max(660 - height, 0)//2
-            padding_width = max(1091 - width, 0)//2
-            
-            image = cv.copyMakeBorder(
-                image, 
-                padding_height, padding_height, 
-                padding_width, padding_width, 
-                cv.BORDER_CONSTANT
-            )
-        else:
-            image = cv.resize(image, (1091, 660))
-
-        height, width, _ = image.shape
         bytesPerLine = 3 * width
         
         image = cv.cvtColor(image, cv.COLOR_BGR2RGB)  
@@ -47,6 +218,7 @@ class MainWindow(QMainWindow):
 
         # Internal variables
         self.video_file_name = ''
+        self.paused = False
         self.options = {
             'log_speed': False,
             'draw_axis': False,
@@ -57,6 +229,8 @@ class MainWindow(QMainWindow):
             'lower_boundary': 100,
             'upper_boundary': 160
         }
+
+        self.processor = FrameProcessor(self.options)
         
         self.setupUi(self)
         self.show()
@@ -76,10 +250,6 @@ class MainWindow(QMainWindow):
         self.frame.setMinimumSize(QtCore.QSize(1091, 660))
         self.frame.setObjectName('frame')
         self.gridLayout.addWidget(self.frame, 1, 0, 1, 1)
-
-        # self.graphicsView = QtWidgets.QGraphicsView(self.allFather)
-        # self.graphicsView.setObjectName("graphicsView")
-        # self.gridLayout.addWidget(self.graphicsView, 1, 0, 1, 1)
         
         self.sideBar = QtWidgets.QVBoxLayout()
         self.sideBar.setObjectName("sideBar")
@@ -242,9 +412,8 @@ class MainWindow(QMainWindow):
         MainWindow.setMenuBar(self.menubar)
         
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
-        self.statusbar.setObjectName("statusbar")
-        
-        MainWindow.setStatusBar(self.statusbar)
+        self.statusbar.setObjectName("statusbar")       
+        self.setStatusBar(self.statusbar)
         
         self.actionExit = QtWidgets.QAction(MainWindow)
         self.actionExit.setObjectName("actionExit")
@@ -346,21 +515,34 @@ class MainWindow(QMainWindow):
     def open_file(self):
         self.video_file_name, _ = QFileDialog.getOpenFileName(self)
 
+        self.processor.load_video(self.video_file_name)
+
+        self.statusBar().showMessage('Video loaded!')
+
     def change_options(self, option):
         self.options[option] =  not self.options[option] 
 
+        self.processor.set_options(self.options)
+
     def change_frame_rate(self):
         self.options['frame_rate'] = self.inputedFrameRate.value()
+
+        self.processor.set_options(self.options)
 
     def change_boundaries(self):
         self.options['lower_boundary'] = self.lowerBoundary.value()
         self.options['upper_boundary'] = self.upperBoundary.value()
 
+        self.processor.set_options(self.options)
+
     def start(self):
-        print('Start video stream')
+        while (not self.paused):
+            result = self.processor.process_frame()
+
+            self.frame.set_frame(result)
         
     def play_pause(self):
-        print('play/pause')
+        self.paused = not self.paused
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
