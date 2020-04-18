@@ -1,5 +1,7 @@
 from PyQt5.QtWidgets import QApplication, QMainWindow, QSizePolicy, QFileDialog
+from PyQt5.QtCore import QThread, Qt, pyqtSignal, pyqtSlot
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtGui import QImage, QPixmap
 from utils import getOrientation
 from time import sleep
 from os import path
@@ -9,7 +11,7 @@ import sys
 
 class FrameProcessor:
     def __init__(self, options):
-        
+        self.file_name = None
         self.options = options
         self.set_options(self.options)
 
@@ -44,6 +46,9 @@ class FrameProcessor:
             exit()
 
     def set_options(self, options):
+        if (self.file_name is None):
+            return
+
         self.options = options
 
         self.lower_white = np.array([self.options['lower_boundary']] * 3)
@@ -51,7 +56,7 @@ class FrameProcessor:
 
         # Creates a stream object for writing the output
         if (self.options['save_video']):
-            result_file_name =  f'{self.file_name}_result.avi'
+            result_file_name =  f'./results/{self.file_name}_result.avi'
 
             self.out_writer = cv.VideoWriter(
                 result_file_name,
@@ -62,7 +67,7 @@ class FrameProcessor:
 
         # Creates a file for position logging
         if (self.options['log_position']):
-            self.pos_log_file = f'./logs/{self.file_name}_pos.csv'
+            self.pos_log_file = f'./results/{self.file_name}_pos.csv'
 
             if not path.isfile(self.pos_log_file): 
                 with open(self.pos_log_file, 'w') as logFile:
@@ -70,7 +75,7 @@ class FrameProcessor:
 
         # Creates a file for position logging
         if (self.options['log_speed']):
-            self.speed_log_file = f'./logs/{self.file_name}_speed.csv'
+            self.speed_log_file = f'./results/{self.file_name}_speed.csv'
 
             if not path.isfile(self.speed_log_file):
                 with open(self.speed_log_file, 'w') as logFile:
@@ -143,11 +148,12 @@ class FrameProcessor:
         self.traveled_distance += speed
         self.previous_pos = self.current_pos
 
-        cv.putText(
-            frame, f'{speed:.3f}', self.current_pos,
-            cv.FONT_HERSHEY_COMPLEX,
-            0.5, (255, 255, 255)
-        )
+        if (self.options['show_speed']):
+            cv.putText(
+                frame, f'{speed:.3f}', self.current_pos,
+                cv.FONT_HERSHEY_COMPLEX,
+                0.5, (255, 255, 255)
+            )
 
         if(self.options['log_speed']):
             if(self.current_pos[0] > 50 and self.current_pos[1] > 50):        
@@ -191,26 +197,59 @@ class FrameProcessor:
 
         return frame
 
-class DisplayImageWidget(QtWidgets.QWidget):
+class Thread(QThread):
+    changePixmap = pyqtSignal(QImage)
+
     def __init__(self, parent=None):
-        super(DisplayImageWidget, self).__init__(parent)
+        QThread.__init__(self, parent=parent)       
 
-        self.image_frame = QtWidgets.QLabel()
+        self.paused = False
 
-        self.layout = QtWidgets.QVBoxLayout()
-        self.layout.addWidget(self.image_frame)
-        self.setLayout(self.layout)
+        self.options = {
+            'log_speed': False,
+            'draw_axis': False,
+            'color_mask': False,
+            'save_video': False,
+            'show_speed': False,
+            'log_position': False,
+            'lower_boundary': 100,
+            'upper_boundary': 160,
+            'frame_rate': 30
+        }
 
-        self.set_frame(cv.imread('./icons/placeholder.png'))
-    
-    def set_frame(self, image):
+        self.processor = FrameProcessor(self.options)
+
+        self.set_placeholder()
+
+    def play_pause(self):
+        self.paused = not self.paused
+
+    def set_placeholder(self):
+        image = cv.imread('./icons/placeholder.png')
+        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
 
         height, width, _ = image.shape
         bytesPerLine = 3 * width
         
-        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)  
-        image = QtGui.QImage(image.data, width, height, bytesPerLine, QtGui.QImage.Format_RGB888)
-        self.image_frame.setPixmap(QtGui.QPixmap.fromImage(image))
+        convertToQtFormat = QImage(image.data, width, height, bytesPerLine, QtGui.QImage.Format_RGB888)
+                
+        self.changePixmap.emit(convertToQtFormat)
+
+    def run(self):
+        while True:
+            if  (not self.paused):
+                continue
+
+            result = self.processor.process_frame()
+
+            image = cv.cvtColor(result, cv.COLOR_BGR2RGB)
+
+            height, width, _ = image.shape
+            bytesPerLine = 3 * width
+            
+            convertToQtFormat = QImage(image.data, width, height, bytesPerLine, QtGui.QImage.Format_RGB888)
+                    
+            self.changePixmap.emit(convertToQtFormat)
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -218,21 +257,16 @@ class MainWindow(QMainWindow):
 
         # Internal variables
         self.video_file_name = ''
-        self.paused = False
-        self.options = {
-            'log_speed': False,
-            'draw_axis': False,
-            'color_mask': False,
-            'save_video': False,
-            'log_position': False,
-            'frame_rate': 30,
-            'lower_boundary': 100,
-            'upper_boundary': 160
-        }
-
-        self.processor = FrameProcessor(self.options)
+        self.paused = True
         
+        self.th = Thread(self)
+
         self.setupUi(self)
+
+        self.th.changePixmap.connect(self.set_frame)
+        self.th.set_placeholder()
+        self.th.start()
+
         self.show()
 
     def setupUi(self, MainWindow):
@@ -246,13 +280,33 @@ class MainWindow(QMainWindow):
         self.gridLayout = QtWidgets.QGridLayout(self.allFather)
         self.gridLayout.setObjectName("gridLayout")
         
-        self.frame = DisplayImageWidget(self.allFather)
-        self.frame.setMinimumSize(QtCore.QSize(1091, 660))
-        self.frame.setObjectName('frame')
-        self.gridLayout.addWidget(self.frame, 1, 0, 1, 1)
+        # self.frame = DisplayImageWidget(self.allFather)
+        # self.frame.setMinimumSize(QtCore.QSize(1091, 660))
+        # self.frame.setObjectName('frame')
+        # self.gridLayout.addWidget(self.frame, 1, 0, 1, 1)
+
+        self.image_frame = QtWidgets.QLabel()
+        self.image_frame.setObjectName('image_frame')
+        self.gridLayout.addWidget(self.image_frame, 1, 0, 1, 1)
         
         self.sideBar = QtWidgets.QVBoxLayout()
         self.sideBar.setObjectName("sideBar")
+
+        self.fileSettings = QtWidgets.QGridLayout()
+        self.fileSettings.setObjectName("fileSettings")
+        
+        self.openFileBtn = QtWidgets.QPushButton(self.allFather)
+        self.openFileBtn.setObjectName("openFileBtn")
+        self.openFileBtn.clicked.connect(self.open_file)
+        self.fileSettings.addWidget(self.openFileBtn, 1, 0, 1, 1)
+        
+        self.sideBar.addLayout(self.fileSettings)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, 
+            QtWidgets.QSizePolicy.Minimum, 
+            QtWidgets.QSizePolicy.Expanding
+        )
+        self.sideBar.addItem(spacerItem)
         
         # Checkbozes for optional settings
         self.opitionalSettings = QtWidgets.QGridLayout()
@@ -261,37 +315,42 @@ class MainWindow(QMainWindow):
         self.drawAxis = QtWidgets.QCheckBox(self.allFather)
         self.drawAxis.setObjectName("drawAxis")
         self.drawAxis.stateChanged.connect(lambda: self.change_options('draw_axis'))
-        self.opitionalSettings.addWidget(self.drawAxis, 3, 0, 1, 1)
-        
-        self.logPosition = QtWidgets.QCheckBox(self.allFather)
-        self.logPosition.setObjectName("logPosition")
-        self.logPosition.stateChanged.connect(lambda: self.change_options('log_position'))
-        self.opitionalSettings.addWidget(self.logPosition, 4, 0, 1, 1)
+        self.opitionalSettings.addWidget(self.drawAxis, 4, 0, 1, 1)
         
         self.logSpeed = QtWidgets.QCheckBox(self.allFather)
         self.logSpeed.setObjectName("logSpeed")
         self.logSpeed.stateChanged.connect(lambda: self.change_options('log_speed'))
-        self.opitionalSettings.addWidget(self.logSpeed, 5, 0, 1, 1)
+        self.opitionalSettings.addWidget(self.logSpeed, 8, 0, 1, 1)
+        
+        self.logPosition = QtWidgets.QCheckBox(self.allFather)
+        self.logPosition.setObjectName("logPosition")
+        self.logPosition.stateChanged.connect(lambda: self.change_options('log_position'))
+        self.opitionalSettings.addWidget(self.logPosition, 7, 0, 1, 1)
         
         self.label_2 = QtWidgets.QLabel(self.allFather)
         self.label_2.setObjectName("label_2")
-        self.opitionalSettings.addWidget(self.label_2, 1, 0, 1, 1)
-        
-        self.colorMask = QtWidgets.QCheckBox(self.allFather)
-        self.colorMask.setObjectName("colorMask")
-        self.colorMask.stateChanged.connect(lambda: self.change_options('color_mask'))
-        self.opitionalSettings.addWidget(self.colorMask, 6, 0, 1, 1)
+        self.opitionalSettings.addWidget(self.label_2, 2, 0, 1, 1)
         
         self.saveVideo = QtWidgets.QCheckBox(self.allFather)
         self.saveVideo.setObjectName("saveVideo")
         self.saveVideo.stateChanged.connect(lambda: self.change_options('save_video'))
-        self.opitionalSettings.addWidget(self.saveVideo, 7, 0, 1, 1)
+        self.opitionalSettings.addWidget(self.saveVideo, 10, 0, 1, 1)
         
         self.line = QtWidgets.QFrame(self.allFather)
         self.line.setFrameShape(QtWidgets.QFrame.HLine)
         self.line.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line.setObjectName("line")
-        self.opitionalSettings.addWidget(self.line, 2, 0, 1, 1)
+        self.opitionalSettings.addWidget(self.line, 3, 0, 1, 1)
+        
+        self.showSpeed = QtWidgets.QCheckBox(self.allFather)
+        self.showSpeed.setObjectName("showSpeed")
+        self.showSpeed.stateChanged.connect(lambda: self.change_options('show_speed'))
+        self.opitionalSettings.addWidget(self.showSpeed, 5, 0, 1, 1)
+        
+        self.colorMask = QtWidgets.QCheckBox(self.allFather)
+        self.colorMask.setObjectName("colorMask")
+        self.colorMask.stateChanged.connect(lambda: self.change_options('color_mask'))
+        self.opitionalSettings.addWidget(self.colorMask, 6, 0, 1, 1)
         
         self.sideBar.addLayout(self.opitionalSettings)
         spacerItem = QtWidgets.QSpacerItem(
@@ -341,6 +400,12 @@ class MainWindow(QMainWindow):
         self.colorLabel = QtWidgets.QLabel(self.allFather)
         self.colorLabel.setObjectName("colorLabel")
         self.colorSettings.addWidget(self.colorLabel, 1, 0, 1, 1)
+
+        self.line_3 = QtWidgets.QFrame(self.allFather)
+        self.line_3.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line_3.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line_3.setObjectName("line_3")
+        self.colorSettings.addWidget(self.line_3, 2, 0, 1, 1)
         
         self.horizontalLayout_2 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
@@ -355,12 +420,12 @@ class MainWindow(QMainWindow):
         self.lowerBoundary.setObjectName("lowerBoundary")
         
         self.horizontalLayout_2.addWidget(self.lowerBoundary)
-        self.colorSettings.addLayout(self.horizontalLayout_2, 2, 0, 1, 1)
+        self.colorSettings.addLayout(self.horizontalLayout_2, 3, 0, 1, 1)
         
         self.colorSettingsBtn = QtWidgets.QPushButton(self.allFather)
         self.colorSettingsBtn.setObjectName("colorSettingsBtn")
         self.colorSettingsBtn.clicked.connect(self.change_boundaries)
-        self.colorSettings.addWidget(self.colorSettingsBtn, 4, 0, 1, 1)
+        self.colorSettings.addWidget(self.colorSettingsBtn, 5, 0, 1, 1)
         
         self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
@@ -374,7 +439,7 @@ class MainWindow(QMainWindow):
         self.upperBoundary.setProperty("value", 160)
         self.upperBoundary.setObjectName("upperBoundary")
         self.horizontalLayout_3.addWidget(self.upperBoundary)
-        self.colorSettings.addLayout(self.horizontalLayout_3, 3, 0, 1, 1)
+        self.colorSettings.addLayout(self.horizontalLayout_3, 4, 0, 1, 1)
         
         self.sideBar.addLayout(self.colorSettings)
         spacerItem2 = QtWidgets.QSpacerItem(
@@ -386,16 +451,11 @@ class MainWindow(QMainWindow):
         
         self.mainBtns = QtWidgets.QGridLayout()
         self.mainBtns.setObjectName("mainBtns")
-
-        self.startBtn = QtWidgets.QPushButton(self.allFather)
-        self.startBtn.setObjectName("startBtn")
-        self.startBtn.clicked.connect(self.start)
-        self.mainBtns.addWidget(self.startBtn, 1, 0, 1, 1)
         
         self.playBtn = QtWidgets.QPushButton(self.allFather)
         self.playBtn.setObjectName("playBtn")
-        self.playBtn.clicked.connect(self.play_pause)
-        self.mainBtns.addWidget(self.playBtn, 2, 0, 1, 1)
+        self.playBtn.clicked.connect(self.th.play_pause)
+        self.mainBtns.addWidget(self.playBtn, 1, 0, 1, 1)
         
         self.sideBar.addLayout(self.mainBtns)
         self.gridLayout.addLayout(self.sideBar, 1, 1, 1, 1)
@@ -434,9 +494,17 @@ class MainWindow(QMainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Mice Tracker"))
 
+        self.openFileBtn.setText(_translate("MainWindow", "Open File"))
+        self.openFileBtn.setShortcut(_translate("MainWindow", "Ctrl+O"))
+
         self.drawAxis.setText(_translate("MainWindow", "Draw Axis"))
         self.drawAxis.setToolTip(_translate(
             "MainWindow", "Draws both axis found through PCA. "
+        ))
+
+        self.showSpeed.setText(_translate("MainWindow", "Show Speed"))
+        self.showSpeed.setToolTip(_translate(
+            "MainWindow", "Displays the animal's current speed."
         ))
         
         self.logPosition.setText(_translate("MainWindow", "Log Position"))
@@ -484,9 +552,6 @@ class MainWindow(QMainWindow):
         self.upperBoundaryLabel.setText(_translate("MainWindow", "Upper Boundary"))
         self.colorSettingsBtn.setText(_translate("MainWindow", "Change"))
         
-        self.startBtn.setText(_translate("MainWindow", "Start"))
-        self.startBtn.setToolTip(_translate("MainWindow", "Initiate tracking."))
-
         self.playBtn.setText(_translate("MainWindow", "Play/Pause"))
         self.playBtn.setToolTip(_translate("MainWindow", "Resumes or pause the video stream."))
         
@@ -515,34 +580,29 @@ class MainWindow(QMainWindow):
     def open_file(self):
         self.video_file_name, _ = QFileDialog.getOpenFileName(self)
 
-        self.processor.load_video(self.video_file_name)
+        self.th.processor.load_video(self.video_file_name)
 
         self.statusBar().showMessage('Video loaded!')
 
     def change_options(self, option):
-        self.options[option] =  not self.options[option] 
+        self.th.options[option] =  not self.th.options[option] 
 
-        self.processor.set_options(self.options)
+        self.th.processor.set_options(self.th.options)
 
     def change_frame_rate(self):
-        self.options['frame_rate'] = self.inputedFrameRate.value()
+        self.th.options['frame_rate'] = self.inputedFrameRate.value()
 
-        self.processor.set_options(self.options)
+        self.th.processor.set_options(self.th.options)
 
     def change_boundaries(self):
-        self.options['lower_boundary'] = self.lowerBoundary.value()
-        self.options['upper_boundary'] = self.upperBoundary.value()
+        self.th.options['lower_boundary'] = self.lowerBoundary.value()
+        self.th.options['upper_boundary'] = self.upperBoundary.value()
 
-        self.processor.set_options(self.options)
+        self.th.processor.set_options(self.th.options)
 
-    def start(self):
-        while (not self.paused):
-            result = self.processor.process_frame()
-
-            self.frame.set_frame(result)
-        
-    def play_pause(self):
-        self.paused = not self.paused
+    @pyqtSlot(QImage)
+    def set_frame(self, frame):
+        self.image_frame.setPixmap(QPixmap.fromImage(frame))
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
