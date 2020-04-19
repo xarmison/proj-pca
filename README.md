@@ -40,6 +40,17 @@ C:\Users\your-user> conda activate <enviroment_name> || source activate <envirom
 (<enviroment_name>) C:\Users\your-user> conda install -c loopbio -c conda-forge -c pkgw-forge ffmpeg numpy==1.16.3 opencv==3.4.3 matplotlib scipy pyserial
 ```
 
+## Graphical User Interface
+
+This GUI implements a more user-friendly way to interact with the tracking algorithm. Usage:
+
+```console
+(<enviroment_name>) user@computer:~/proj-pca/gui$ python main.py
+```
+
+![guiGif](./readme_imgs/gui.gif)
+
+
 ## The scripts
 
 To use the provided scripts, first make sure to activate your python environment:
