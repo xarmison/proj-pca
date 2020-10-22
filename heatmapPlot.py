@@ -70,5 +70,7 @@ if __name__ == '__main__':
     pc = axes[1].pcolormesh(xi, yi, zi.reshape(xi.shape), shading='gouraud', cmap=plt.cm.jet)
 
     fig.colorbar(pc, format=FuncFormatter(numberFormatter))
+    plt.setp(axes[0].xaxis.get_majorticklabels(), rotation=70)
+    plt.setp(axes[1].xaxis.get_majorticklabels(), rotation=70)
     plt.tight_layout()
     plt.show()
