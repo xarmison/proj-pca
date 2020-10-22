@@ -1,4 +1,6 @@
 from utils import getOrientation
+from os import path, mkdir
+from tqdm import tqdm
 import numpy as np
 import cv2 as cv
 import argparse
@@ -63,10 +65,6 @@ if __name__ == '__main__':
         print('Error readning video stream')
         exit()
 
-    # Color range of the mice un the subtracted image
-    lower_white = np.array([100, 100, 100])
-    upper_white = np.array([160, 160, 160])
-
     # Selection of the ROIs
     ret, frame = cap.read()
 
@@ -74,49 +72,74 @@ if __name__ == '__main__':
         print('Error readning video stream')
         exit()
 
-    rois = cv.selectROIs('ROIs Selection', frame, False)
-    cv.destroyWindow('ROIs Selection')
+    roi_win = 'ROI Selection'
+    cv.namedWindow(roi_win, cv.WINDOW_KEEPRATIO)
+    cv.resizeWindow(roi_win, 1438, 896)
+
+    rois = cv.selectROI(roi_win, frame, False)
+    cv.destroyWindow(roi_win)
 
     # Counter for each selected region    
-    roisCounter = [ 0 for _ in range(len(rois)) ]
+    rois_counter = [ 0 for _ in range(len(rois)) ]
     statsLogFile = f"./logs/{args.video.split('/')[-1].split('.')[0]}_stats.txt"
+
+    if(args.save_video):
+        resultFileName = f"{args.video.split('/')[-1].split('.')[0]}_result.avi"
+
+        outWriter = cv.VideoWriter(
+            resultFileName,
+            cv.VideoWriter_fourcc('M', 'J', 'P', 'G'),
+            args.frame_rate, (frameWidth, frameHeight)
+        )
+
+    # Check whether it's necessary to create a logs directory
+    if(args.log_stats or args.log_position or args.log_speed):
+        if(not path.exists('./logs')):
+            mkdir('./logs')
+
+    # Create file for stats loging
+    statsLogFile = f"./logs/{args.video.split('/')[-1].split('.')[0]}_stats.txt"
+    if(args.log_stats):
+        with open(statsLogFile, 'w') as log_file:
+            log_file.write('')
+
+    # Create file for position loging
+    posLogFile = f"./logs/{args.video.split('/')[-1].split('.')[0]}_pos.csv"
+    if(args.log_position):        
+        with open(posLogFile, 'w') as log_file:
+            log_file.write('x,y\n')
+
+    # Create file for speed loging 
+    speedLogFile = f"./logs/{args.video.split('/')[-1].split('.')[0]}_speed.csv"
+    if(args.log_speed):        
+        with open(speedLogFile, 'w') as log_file:
+            log_file.write('time,speed\n')
 
     result_win = 'Tracker'
     cv.namedWindow(result_win, cv.WINDOW_KEEPRATIO)
     cv.resizeWindow(result_win, 640, 528)
 
-    if(args.save_video):
-        resultFileName = args.video.split('/')[-1].split('.')[0] + '_result.avi'
-
-        outWriter = cv.VideoWriter(
-            resultFileName,
-            cv.VideoWriter_fourcc('M', 'J', 'P', 'G'),
-            30, (frameWidth, frameHeight)
-        )
-    
-    # Create file for position loging
-    posLogFile = f"./logs/{args.video.split('/')[-1].split('.')[0]}_pos.csv"
-    if(args.log_position):        
-        with open(posLogFile, 'w') as logFile:
-            logFile.write('x,y\n')
+    # Color range of the mice un the subtracted image
+    lower_white = np.array([100, 100, 100])
+    upper_white = np.array([160, 160, 160])
 
     # Varibles fo tracking the mice's position
     previous_pos = (0, 0)
     current_pos = (0, 0)
 
-    # Create file for speed loging 
-    speedLogFile = f"./logs/{args.video.split('/')[-1].split('.')[0]}_speed.csv"
-    if(args.log_speed):        
-        with open(speedLogFile, 'w') as logFile:
-            logFile.write('time,speed\n')
-
     frameIndex = 0
     traveledDistance = 0
+
+    num_frames = int(cap.get(cv.CAP_PROP_FRAME_COUNT))
+    pbar = tqdm(total=num_frames)
+
     while(cap.isOpened()):
         ret, frame = cap.read()
+        pbar.update(1)
 
         if(not ret):
             print('Error readning video stream')
+            pbar.close()
             exit()
 
         sub_frame = cv.absdiff(frame, bg_img)
@@ -139,8 +162,6 @@ if __name__ == '__main__':
         # Morphological opening
         mask = cv.dilate(cv.erode(filtered_frame, kernel3), kernel20)
 
-        mask_roi = cv.bitwise_and(sub_frame, sub_frame, mask=mask)
-
         # Find all the contours in the mask
         returns = cv.findContours(mask, cv.RETR_LIST, cv.CHAIN_APPROX_NONE)
         
@@ -151,19 +172,13 @@ if __name__ == '__main__':
         else:
             contours = returns[0]
 
-        for i, c in enumerate(contours):
-            # Calculate the area of each contour
-            area = cv.contourArea(c)
-
-            # Ignore contours that are too small or too large
-            if area < 1e2 or 1e5 < area:
-                continue
-
-            # Draw each contour only for visualisation purposes
-            cv.drawContours(frame, contours, i, (255, 0, 255), 2)
+        if(len(contours) != 0):
+            # find the biggest countour by the area
+            contour = max(contours, key = cv.contourArea)
+            cv.drawContours(frame, [contour], 0, (255, 0, 255), 2)
 
             # Find the orientation of each shape
-            current_pos, _ = getOrientation(c, frame, args.draw_axis)
+            current_pos, _ = getOrientation(contour, frame, args.draw_axis)
 
         speed = np.sqrt(
             (previous_pos[0] - current_pos[0])**2 + 
@@ -173,12 +188,6 @@ if __name__ == '__main__':
         traveledDistance += speed
         previous_pos = current_pos
 
-        cv.putText(
-            frame, f'{speed:.3f}', current_pos,
-            cv.FONT_HERSHEY_COMPLEX,
-            0.5, (255, 255, 255)
-        )
-
         if(args.log_speed):
             if(current_pos[0] > 50 and current_pos[1] > 50):        
                 with open(speedLogFile, 'a') as logFile:
@@ -186,10 +195,6 @@ if __name__ == '__main__':
         
         # Draw ROI and check if the mice is inside 
         if(rois is not None):
-            if(args.log_position):
-                with open(statsLogFile, 'w') as logFile:
-                    logFile.write(f'\tCounters for the regions considering {args.frame_rate}fps video\n\n')
-                    logFile.write(f'Traveled distance: {traveledDistance:.3f} pixels\n')
 
             for index, roi in enumerate(rois):
                 x, y, w, h = roi
@@ -202,9 +207,9 @@ if __name__ == '__main__':
                             (128, 244, 66), 2
                         )
 
-                        roisCounter[index] += 1
+                        rois_counter[index] += 1
                         cv.putText(
-                            frame, f'{index}: {roisCounter[index]}', (x, y - 5),
+                            frame, f'{index}: {rois_counter[index]}', (x, y - 5),
                             cv.FONT_HERSHEY_COMPLEX,
                             0.5, (255, 255, 255)
                         )
@@ -217,7 +222,7 @@ if __name__ == '__main__':
                         )
 
                         cv.putText(
-                            frame, f'{index}: {roisCounter[index]}', (x, y - 5),
+                            frame, f'{index}: {rois_counter[index]}', (x, y - 5),
                             cv.FONT_HERSHEY_COMPLEX,
                             0.5, (255, 255, 255)
                         )
@@ -229,16 +234,22 @@ if __name__ == '__main__':
                     )
 
                     cv.putText(
-                        frame, f'{index}: {roisCounter[index]}', (x, y - 5),
+                        frame, f'{index}: {rois_counter[index]}', (x, y - 5),
                         cv.FONT_HERSHEY_COMPLEX,
                         0.5, (255, 255, 255)
                     )
 
-                if(args.log_position):
-                    # Saves the rois counter to file
-                    with open(statsLogFile, 'a') as logFile:
-                        logFile.write(f'Region {index}: {roisCounter[index]} frames')
-                        logFile.write(f', {roisCounter[index] * (1/float(args.frame_rate)):.3f}s\n')
+            if(args.log_stats):
+                # Saves the rois counter to file
+                with open(statsLogFile, 'w') as log_file:
+                    
+                    log_file.write(f'\tCounters for the regions considering {args.frame_rate}fps video\n')
+                    log_file.write(f'\n- Traveled distance: {traveledDistance:.3f} pixels\n')
+
+                    log_file.write('\n- Time in spent in each region:\n')
+                    for idx, region in enumerate(rois_counter):
+                        log_file.write(f'\tRegion {idx}:\t{rois_counter[idx]} frames')
+                        log_file.write(f', {rois_counter[idx] * (1/float(args.frame_rate)):.3f}s\n')
 
         # Save position to file
         if(args.log_position):
@@ -265,6 +276,7 @@ if __name__ == '__main__':
         if(key == 27 or key == 113):
             cv.destroyAllWindows()
             cap.release()
+            pbar.close()
 
             if(args.save_video):
                 outWriter.release()
@@ -282,6 +294,7 @@ if __name__ == '__main__':
                 elif(key2 == 27 or key == 113):
                     cv.destroyAllWindows()
                     cap.release()
+                    pbar.close()
 
                     if(args.save_video):
                         outWriter.release()
