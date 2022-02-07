@@ -202,6 +202,6 @@ This scripts takes as input a speed log file produced by the *tracker.py* script
 
 * *log_file*: Path to the log file file to be processed.
 
-## Any questions?
+<!-- ## Any questions?
 
-Feel free to contact me at richardsonsantiago@ufrn.edu.br
+Feel free to contact me at richardsonsantiago@ufrn.edu.br -->
