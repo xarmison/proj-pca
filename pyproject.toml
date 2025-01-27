@@ -1,0 +1,12 @@
+[project]
+name = "pymicetracking"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "opencv-python>=4.11.0.86",
+    "torch>=2.5.1",
+    "tqdm>=4.67.1",
+    "ultralytics>=8.3.68",
+]
