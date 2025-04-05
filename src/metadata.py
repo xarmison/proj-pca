@@ -89,6 +89,8 @@ class MetadataOF(Metadata):
         # Manual definition of the ROIs
         rois_file = f'{args.video.split(".")[0]}.json'
         if args.draw_rois: 
+            print('Draw the center ROI!')
+
             roi_win = 'ROI Selection'
             cv.namedWindow(roi_win, cv.WINDOW_KEEPRATIO)
             cv.resizeWindow(roi_win, 1438, 896)
@@ -152,6 +154,8 @@ class MetadataEPM(Metadata):
         # Manual definition of the ROIs
         rois_file = f'{args.video.split(".")[0]}.json'
         if args.draw_rois: 
+            print('Draw the ROIs on the following order: top, bottom, right, left, center!')
+
             roi_win = 'ROI Selection'
             cv.namedWindow(roi_win, cv.WINDOW_KEEPRATIO)
             cv.resizeWindow(roi_win, 1438, 896)

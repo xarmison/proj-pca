@@ -1,30 +1,20 @@
 from argparse import ArgumentParser, Namespace
 from ultralytics import YOLO
 from typing import NoReturn
-from os import path, sep
+from os import sep
 from tqdm import tqdm
 
 import numpy as np
 import cv2 as cv
 import torch
-import json
 
 from metadata import MetadataOF, MetadataEPM
+from constants import (
+    KERNEL3,
+    KERNEL20 
+)
 
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-MODEL = 'assets/best.pt'
-
-# Kernel for morphological operation opening
-KERNEL3 = cv.getStructuringElement(
-    cv.MORPH_ELLIPSE,
-    (3, 3), (-1, -1)
-)
-
-KERNEL20 = cv.getStructuringElement(
-    cv.MORPH_ELLIPSE,
-    (5, 5), (-1, -1)
-)
-
 
 def parser_args() -> Namespace:
 
@@ -43,6 +33,11 @@ def parser_args() -> Namespace:
     )
 
     parser.add_argument(
+        'yolo_model', type=str,
+        help='Path to the YOLO model.'
+    )
+
+    parser.add_argument(
         '--draw-rois', action='store_true',
         help='User inputed Regions of interest.'
     )
@@ -50,11 +45,6 @@ def parser_args() -> Namespace:
     parser.add_argument(
         '--save-video', action='store_true',
         help='Create a video file with the analysis result.'
-    )
-
-    parser.add_argument(
-        '--color-mask', action='store_true',
-        help='Draw a colored mask over the detection.'
     )
 
     parser.add_argument(
@@ -162,7 +152,7 @@ if __name__ == '__main__':
 
     out_writer, stats_log_file, pos_log_file, speed_log_file = setup(args)
 
-    model = YOLO(MODEL)
+    model = YOLO(args.yolo_model)
     model.to(DEVICE)
 
     if args.type == 'OF':
@@ -265,9 +255,6 @@ if __name__ == '__main__':
 
         if args.save_video:
             out_writer.write(frame)
-
-        if frame_index == 1000:
-            break
 
         cv.imshow(result_win, frame)
         key = cv.waitKey(10)
