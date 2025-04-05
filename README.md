@@ -26,7 +26,7 @@ user@computer:~/proj-pca$ source .venv/bin/activate
 This script aims to track mice throughout a neuroscience experiment detecting when the mice are present in a previously selected region, with that the program is able to keep track of how many frames the animal stayed inside each zone. Usage:
 
 ```console
-(pymicetracking) user@computer:~/proj-pca$ python src/yolo_tracker.py video experiment_type yolo_model [-h] [--draw-rois] [--save-video] [--color-mask] [--log-position] [--log-stats] [--log-speed]
+(pymicetracking) user@computer:~/proj-pca$ python src/yolo_tracker.py video experiment_type yolo_model [-h] [--draw-rois] [--save-video] [--log-position] [--log-stats] [--log-speed]
 ```
 
 **Required arguments**:
