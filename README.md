@@ -203,7 +203,8 @@ This scripts takes as input a speed log file produced by the *tracker.py* script
 * *log_file*: Path to the log file file to be processed.
 
 **Cite**
-PyMiceTracking: An Open-Source Toolbox For Real-Time Behavioral Neuroscience Experiments ![speedPlot](https://ieeexplore.ieee.org/document/9879797)
+
+PyMiceTracking: An Open-Source Toolbox For Real-Time Behavioral Neuroscience Experiments ![IEEE](https://ieeexplore.ieee.org/document/9879797)
 
 
 <!-- ## Any questions?
